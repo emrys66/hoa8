@@ -1,0 +1,29 @@
+---
+- name: Extract executable from PCAP file on Control Node
+  hosts: servers
+  become: yes
+  tasks:
+    - name: Update apt cache and install tshark
+      apt:
+        name: tshark
+        state: present
+        update_cache: yes
+
+    - name: Extract executable using tshark from PCAP file
+      shell: tshark -r /tmp/captured.pcap -qz "follow,tcp,raw,0" > /home/qfmgayao/extracted_executable.bin
+      register: extraction_result
+      ignore_errors: yes
+
+    - name: Check if the extraction produced a file
+      stat:
+        path: /home/qfmgayao/extracted_executable.bin
+      register: extracted_file
+
+    - name: Debug output of the extraction
+      debug:
+        var: extraction_result
+
+    - name: Fail if no file was extracted
+      fail:
+        msg: "No executable was extracted from the PCAP file. Check the tshark command and PCAP file."
+      when: not extracted_file.stat.exists
